@@ -2,47 +2,23 @@ import { Linking, Platform } from 'react-native';
 import { APP_LIST } from './app-list';
 import CheckPackageInstallation from './android';
 
-class AppInstalledChecker {
+export const isAppInstalledAndroid = key =>
+    new Promise((res, rej) =>
+        CheckPackageInstallation
+            .isPackageInstalled(key, (isInstalled) => res(isInstalled))
+    )
 
-    static getAppList() {
-        return Object.keys(APP_LIST);
-    }
+export const isAppInstalledIOS = (key) =>
+    new Promise((res, rej) =>
+        Linking
+            .canOpenURL(key.urlScheme + '://' + (key.urlParams || ''))
+            .then(isInstalled => res(isInstalled))
+            .catch(err => rej(err))
+    )
 
-    static checkPackageName(packagename) {
-        return new Promise((resolve, reject) => {
-            CheckPackageInstallation.isPackageInstalled(packagename, (isInstalled) => {
-                resolve(isInstalled);
-            });
-        });
-    }
+export const isAppInstalled = (keyOrPackage) =>
+    Platform.select({
+        ios: () => isAppInstalledIOS(APP_LIST[keyOrPackage] || keyOrPackage),
+        android: () => isAppInstalledAndroid(APP_LIST[keyOrPackage] || keyOrPackage),
+    })
 
-    static checkURLScheme(proto, query) {
-        return new Promise((resolve, reject) => {
-            Linking
-                .canOpenURL(proto + '://' + query || '')
-                .then((isInstalled) => {
-                    resolve(isInstalled);
-                })
-                .catch((err) => {
-                    reject(err);
-                });
-        });
-    }
-
-    static isAppInstalled(key) {
-        return Platform.select({
-            ios: () => { return this.isAppInstalledIOS(key); },
-            android: () => { return this.isAppInstalledAndroid(key); }
-        })();
-    }
-
-    static isAppInstalledAndroid(key) {
-        return this.checkPackageName(key);
-    }
-
-    static isAppInstalledIOS(key) {
-        return this.checkURLScheme(APP_LIST[key].urlScheme, APP_LIST[key].urlParams);
-    }
-}
-
-export default AppInstalledChecker;
